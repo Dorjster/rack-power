@@ -11,6 +11,7 @@ import { CHECKLIST_KEYS } from '../../audit/checklist';
 import { CATALOG_ACCESS_NOTE, CATALOG_VERSION } from '../../catalog/devices';
 import { BUILTIN_PDU_TEMPLATES } from '../../catalog/pdus';
 import type { CheckStatus } from '../../domain/types';
+import { designOnly, groupFindings } from '../../audit/group';
 
 const ST: Record<CheckStatus, string> = { pass: '✓ ', warning: '! ', fail: '✕ ', unknown: '? ', na: '– ' };
 
@@ -33,6 +34,7 @@ export function Report() {
   const sevRank = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
   const statusRank = { fail: 0, warning: 1, unknown: 2, pass: 3, na: 4 };
   issues.sort((x, y) => statusRank[x.status] - statusRank[y.status] || sevRank[x.severity] - sevRank[y.severity]);
+  const grouped = groupFindings(designOnly(issues));
   const top = issues.filter((f) => f.severity === 'critical' || f.severity === 'high').slice(0, 8);
   const outletLabel = new Map<string, string>();
   for (const p of project.pdus) for (const b of p.banks) for (const o of b.outlets) outletLabel.set(o.id, `${p.name}#${o.index}`);
@@ -183,7 +185,6 @@ export function Report() {
           <table className="rtbl">
             <thead>
               <tr>
-                <th>{t('common.scenario')}</th>
                 <th>PDU</th>
                 <th>{t('power.typical')}</th>
                 <th>{t('power.design')}</th>
@@ -194,13 +195,15 @@ export function Report() {
               </tr>
             </thead>
             <tbody>
-              {a.scenarios.map((s) =>
-                pdus.map((p, i) => {
+              {a.scenarios.flatMap((s) => [
+                <tr key={s.def.id + '-h'}>
+                  <th colSpan={7}>{tm(scenarioLabel(s.def, project))}</th>
+                </tr>,
+                ...pdus.map((p) => {
                   const ty = s.typical.pdus[p.id];
                   const de = s.design.pdus[p.id];
                   return (
                     <tr key={s.def.id + p.id}>
-                      <td>{i === 0 ? tm(scenarioLabel(s.def, project)) : ''}</td>
                       <td>{p.name}</td>
                       {de.powered ? (
                         <>
@@ -223,7 +226,7 @@ export function Report() {
                     </tr>
                   );
                 }),
-              )}
+              ])}
             </tbody>
           </table>
           {project.upses.length > 0 && (
@@ -255,7 +258,7 @@ export function Report() {
               </tr>
             </thead>
             <tbody>
-              {issues.map((f) => (
+              {grouped.map(({ f, scenarios }) => (
                 <tr key={f.key} className="report-avoid-break">
                   <td className="whitespace-nowrap">
                     {ST[f.status]}
@@ -268,7 +271,7 @@ export function Report() {
                   </td>
                   <td>
                     <b>{f.affected.label}</b>
-                    {f.scenarioLabel && ` [${tm(f.scenarioLabel)}${f.level ? `, ${t(`level.${f.level}`)}` : ''}]`}: {tm(f.msg)}
+                    {scenarios.length > 0 && ` [${scenarios.map((x) => tm(x)).join('; ')}${f.level ? `, ${t(`level.${f.level}`)}` : ''}]`}: {tm(f.msg)}
                     {f.calc && <div className="font-mono text-[7.5pt] text-gray-700">{f.calc}</div>}
                     {ackNote(project, f.key) && <div className="text-[7.5pt]">{t('audit.acked')}: {ackNote(project, f.key)}</div>}
                   </td>

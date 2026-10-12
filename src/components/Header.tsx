@@ -120,10 +120,13 @@ export function Header() {
           <span className={`text-[11px] ${saveStatus === 'saved' ? 'text-emerald-400' : saveStatus === 'error' ? 'text-red-400' : 'text-amber-300'}`} role="status" aria-live="polite">
             {t(`save.${saveStatus}`)}
           </span>
-          <label className="inline-flex items-center gap-1 text-[11px] text-slate-300" title={t('help.advanced')}>
-            <input type="checkbox" checked={advanced} onChange={(e) => setUi({ advanced: e.target.checked })} />
-            {t('header.advanced')}
-          </label>
+          <div role="group" aria-label={t('help.advanced')} title={t('help.advanced')} className="inline-flex overflow-hidden rounded-md border border-slate-700 text-xs">
+            {([false, true] as const).map((v) => (
+              <button key={String(v)} aria-pressed={advanced === v} className={`px-2.5 py-1 ${advanced === v ? 'bg-cyan-800 text-white' : 'bg-slate-900 text-slate-300'}`} onClick={() => setUi({ advanced: v })}>
+                {t(v ? 'header.advanced' : 'header.basic')}
+              </button>
+            ))}
+          </div>
           <div className="relative" ref={menuRef}>
             <button className="btn btn-sm" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
               ⇅ {t('header.io')}

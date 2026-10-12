@@ -17,6 +17,7 @@ import { autoPlace, occupiedRanges } from '../../engine/placement';
 export function AuditPanel() {
   const { t } = useT();
   const rackId = useStore((s) => s.selectedRackId);
+  const advanced = useStore((s) => s.advanced);
   return (
     <div>
       <ConclusionView rackId={rackId} />
@@ -24,10 +25,10 @@ export function AuditPanel() {
         <ConclusionCards rackId={rackId} />
       </div>
       <div className="mt-3" />
-      <WhatIf />
+      {advanced && <WhatIf />}
       <FindingsList />
       <Checklist />
-      <Coverage />
+      {advanced && <Coverage />}
       <AuditMeta />
       <p className="mt-2 text-[11px] text-slate-500">{t('audit.disclaimer')}</p>
     </div>
@@ -45,6 +46,7 @@ function FindingsList() {
   const [type, setType] = useState<RuleType | 'all'>('all');
   const [scenario, setScenario] = useState<string>('all');
   const [open, setOpen] = useState<string | null>(null);
+  const advanced = useStore((s) => s.advanced);
   const list = all.filter(
     (f) =>
       (status === 'all' || (status === 'issues' ? f.status === 'fail' || f.status === 'warning' || f.status === 'unknown' : f.status === status)) &&
@@ -58,6 +60,8 @@ function FindingsList() {
   const ack = (f: Finding) => project.acks.find((x) => x.findingKey === f.key);
   return (
     <Section
+      key={String(advanced)}
+      defaultOpen={advanced}
       title={t('audit.findings')}
       badge={
         <span className="flex gap-1">

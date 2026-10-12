@@ -58,7 +58,6 @@ export function PowerPanel() {
           <table className="tbl">
             <thead>
               <tr>
-                <th>{t('common.scenario')}</th>
                 <th>PDU</th>
                 <th>{t('power.typical')}</th>
                 <th>{t('power.design')}</th>
@@ -69,13 +68,17 @@ export function PowerPanel() {
               </tr>
             </thead>
             <tbody>
-              {a.scenarios.map((s) =>
-                pdus.map((p, i) => {
+              {a.scenarios.flatMap((s) => [
+                <tr key={`${s.def.id}-h`} className="border-t-2 border-slate-700">
+                  <td colSpan={7} className="pt-2 text-xs font-semibold text-cyan-300">
+                    {tm(scenarioLabel(s.def, project))}
+                  </td>
+                </tr>,
+                ...pdus.map((p) => {
                   const ty = s.typical.pdus[p.id];
                   const de = s.design.pdus[p.id];
                   return (
-                    <tr key={`${s.def.id}-${p.id}`} className={i === 0 ? 'border-t-2 border-slate-700' : ''}>
-                      <td>{i === 0 ? tm(scenarioLabel(s.def, project)) : ''}</td>
+                    <tr key={`${s.def.id}-${p.id}`}>
                       <td className="whitespace-nowrap">
                         {p.name} ({p.feed})
                       </td>
@@ -104,7 +107,7 @@ export function PowerPanel() {
                     </tr>
                   );
                 }),
-              )}
+              ])}
             </tbody>
           </table>
         </div>

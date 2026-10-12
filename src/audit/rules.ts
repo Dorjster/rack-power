@@ -741,7 +741,7 @@ export function evaluateRules(ctx: RuleContext): Finding[] {
             threshold: `${fmtA(L.planningA)} (${planBasis}); alert ≥ ${fmtA(L.alertA)}`,
             calc,
             msg: m(
-              planEx ? (hardExceeded ? 'f.CAP-PDU-PLAN.fail_hard' : 'f.CAP-PDU-PLAN.fail') : alert ? 'f.CAP-PDU-PLAN.alert' : status === 'unknown' ? 'f.CAP-PDU.partial' : 'f.CAP-PDU-PLAN.ok',
+              planEx ? (hardExceeded ? 'f.CAP-PDU-PLAN.fail_hard' : sp.def.kind === 'loss_feed' ? 'f.CAP-PDU-PLAN.fail_loss' : 'f.CAP-PDU-PLAN.fail') : alert ? 'f.CAP-PDU-PLAN.alert' : status === 'unknown' ? 'f.CAP-PDU.partial' : 'f.CAP-PDU-PLAN.ok',
               {
                 pdu: pdu.name,
                 feed: pdu.feed,
@@ -752,7 +752,7 @@ export function evaluateRules(ctx: RuleContext): Finding[] {
                 head: fmtA(pr.governingA !== null ? L.planningA - pr.governingA : null),
                 alert: fmtA(L.alertA),
                 unknown: pr.unknownCount,
-                scenario: '',
+                lost: sp.def.target ?? '',
               },
             ),
             rec: planEx ? m('r.CAP-PDU.plan') : alert ? m('r.CAP-PDU.alert') : null,

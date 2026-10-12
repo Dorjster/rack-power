@@ -53,7 +53,7 @@ export function RackPane() {
         </label>
       </div>
 
-      <div className="card overflow-hidden p-2">
+      <div className="card mx-auto w-full max-w-[760px] overflow-hidden p-2">
         <RackElevation
           rack={rack}
           devices={devices}

@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react';
 import type { ID } from '../../domain/types';
 import type { Finding } from '../../audit/types';
+import { designOnly, groupFindings } from '../../audit/group';
 import { useStore } from '../../state/store';
 import { useAnalysis } from '../../state/useAnalysis';
 import { useT } from '../../i18n';
@@ -33,7 +35,9 @@ export function ConclusionView({ rackId, printable = false }: { rackId: ID; prin
   const c = ra.conclusion;
   const style = VERDICT_STYLE[c.verdict];
   const known = [...c.hardFindings, ...c.planningFindings, ...c.failoverFindings];
-  const designOnly = (fs: Finding[]) => fs.filter((f) => f.level !== 'typical' || !fs.some((g) => g.affected.id === f.affected.id && g.ruleId === f.ruleId && g.scenarioId === f.scenarioId && g.level === 'design'));
+  const groups = groupFindings(designOnly(known));
+  const advanced = useStore((st) => st.advanced);
+  const max = advanced ? 6 : 3;
   return (
     <div className={`rounded-lg border-2 p-3 ${printable ? 'border-black text-black' : style.cls}`}>
       <div className="flex items-start gap-2">
@@ -45,19 +49,17 @@ export function ConclusionView({ rackId, printable = false }: { rackId: ID; prin
           <div className="text-xs opacity-90">{t(`verdict.${c.verdict}.sub`)}</div>
         </div>
       </div>
-      {known.length > 0 && (
+      {groups.length > 0 && (
         <ul className="mt-2 space-y-1">
-          {designOnly(known)
-            .slice(0, 6)
-            .map((f) => (
-              <li key={f.key} className="text-xs">
-                <span aria-hidden>• </span>
-                {f.scenarioLabel && <b>[{tm(f.scenarioLabel)}] </b>}
-                {tm(f.msg)}
-                {f.rec && <span className="opacity-80"> → {tm(f.rec)}</span>}
-              </li>
-            ))}
-          {designOnly(known).length > 6 && <li className="text-[11px] opacity-80">+{designOnly(known).length - 6} …</li>}
+          {groups.slice(0, max).map(({ f, scenarios }) => (
+            <li key={f.key} className="text-xs">
+              <span aria-hidden>• </span>
+              {advanced && scenarios.length > 0 && <b>[{scenarios.map((m) => tm(m)).join('; ')}] </b>}
+              <b>{f.affected.label}:</b> {tm(f.msg)}
+              {advanced && f.rec && <span className="opacity-80"> → {tm(f.rec)}</span>}
+            </li>
+          ))}
+          {groups.length > max && <li className="text-[11px] opacity-80">+{groups.length - max} …</li>}
         </ul>
       )}
       {c.alsoIncomplete && <div className="mt-2 rounded border border-violet-500/60 bg-violet-950/40 p-2 text-xs text-violet-100">? {t('verdict.alsoIncomplete', { n: c.essentialUnknowns.length })}</div>}
@@ -70,6 +72,7 @@ export function ConclusionView({ rackId, printable = false }: { rackId: ID; prin
 export function ConclusionCards({ rackId }: { rackId: ID }) {
   const { t, tm } = useT();
   const project = useStore((s) => s.project);
+  const advanced = useStore((st) => st.advanced);
   const a = useAnalysis();
   const ra = a.byRack[rackId];
   const normal = a.scenarios[0];
@@ -82,7 +85,16 @@ export function ConclusionCards({ rackId }: { rackId: ID }) {
   const fixes = [...ra.conclusion.hardFindings, ...ra.conclusion.planningFindings, ...ra.conclusion.failoverFindings, ...ra.findings.filter((f) => f.status === 'warning' && f.severity !== 'low' && f.severity !== 'info')].filter(
     (f, i, arr) => arr.findIndex((g) => g.ruleId === f.ruleId && g.affected.id === f.affected.id) === i,
   );
-  const verify = ra.findings.filter((f) => f.status === 'unknown').filter((f, i, arr) => arr.findIndex((g) => g.ruleId === f.ruleId && g.affected.id === f.affected.id) === i);
+  // One line per rule/message, listing the affected items.
+  const verifyMap = new Map<string, { f: Finding; labels: string[] }>();
+  for (const f of ra.findings.filter((x) => x.status === 'unknown')) {
+    const k = `${f.ruleId}|${f.msg.key}`;
+    const g = verifyMap.get(k);
+    if (g) {
+      if (!g.labels.includes(f.affected.label)) g.labels.push(f.affected.label);
+    } else verifyMap.set(k, { f, labels: [f.affected.label] });
+  }
+  const verify = [...verifyMap.values()].sort((a, b) => Number(b.f.essential) - Number(a.f.essential));
   const hr = ra.headroom;
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -136,7 +148,7 @@ export function ConclusionCards({ rackId }: { rackId: ID }) {
           <div className="text-xs text-emerald-300">{t('cards.noFix')}</div>
         ) : (
           <ol className="list-decimal space-y-1 pl-4 text-xs">
-            {fixes.slice(0, 6).map((f) => (
+            {fixes.slice(0, advanced ? 6 : 3).map((f) => (
               <li key={f.key}>
                 <b>{f.affected.label}</b>: {f.rec ? tm(f.rec) : tm(f.msg)}
               </li>
@@ -149,13 +161,13 @@ export function ConclusionCards({ rackId }: { rackId: ID }) {
           <div className="text-xs text-emerald-300">{t('cards.noVerify')}</div>
         ) : (
           <ul className="space-y-1 text-xs">
-            {verify.slice(0, 6).map((f) => (
+            {verify.slice(0, advanced ? 6 : 3).map(({ f, labels }) => (
               <li key={f.key}>
                 {f.essential ? '★ ' : '• '}
-                <b>{f.affected.label}</b>: {tm(f.msg)}
+                <b>{labels.slice(0, 3).join(', ')}{labels.length > 3 ? ` +${labels.length - 3}` : ''}</b>: {tm(f.msg)}
               </li>
             ))}
-            {verify.length > 6 && <li className="text-slate-400">+{verify.length - 6} …</li>}
+            {verify.length > (advanced ? 6 : 3) && <li className="text-slate-400">+{verify.length - (advanced ? 6 : 3)} …</li>}
           </ul>
         )}
       </Card>
@@ -179,7 +191,7 @@ export function scenarioName(id: string, t: (k: string, p?: Record<string, strin
   return id;
 }
 
-function Card({ title, n, children }: { title: string; n: number; children: React.ReactNode }) {
+function Card({ title, n, children }: { title: string; n: number; children: ReactNode }) {
   return (
     <div className="rounded-md border border-slate-800 bg-slate-900/60 p-2">
       <div className="mb-1 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">

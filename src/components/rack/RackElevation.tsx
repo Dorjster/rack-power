@@ -62,7 +62,8 @@ export function RackElevation(props: Props) {
         const outs = p.banks.flatMap((b) => b.outlets);
         const avail = rack.heightU * U - 20;
         const pitch = Math.min(U * 0.95, avail / Math.max(1, outs.length));
-        outs.forEach((o, j) => map.set(o.id, { x: baseX + i * PDU_W + PDU_W / 2, y: TOP + 14 + j * pitch + pitch / 2, pdu: p }));
+        // Outlet #1 at the bottom (near U1), matching bottom-up equipment placement.
+        outs.forEach((o, j) => map.set(o.id, { x: baseX + i * PDU_W + PDU_W / 2, y: TOP + rack.heightU * U - 6 - j * pitch - pitch / 2, pdu: p }));
       });
     place(leftPdus, LABEL_W);
     place(rightPdus, innerX + INNER_W + RAIL + 4);
@@ -131,7 +132,7 @@ export function RackElevation(props: Props) {
     const sel = selectedId === d.id;
     const bad = BAD.has(st);
     const warn = WARN.has(st);
-    const nameMax = Math.floor((INNER_W - 140) / 5.6);
+    const nameMax = Math.floor((INNER_W - (view === 'rear' ? 175 : 140)) / 5.6);
     const name = d.name.length > nameMax ? `${d.name.slice(0, nameMax - 1)}…` : d.name;
     const unknown = !d.power.passiveZero && !d.poweredByPoeSwitchId && typical.devices[d.id]?.load.inputW === null;
     return (
@@ -142,12 +143,12 @@ export function RackElevation(props: Props) {
           <RearPanel w={INNER_W} h={h} category={d.category} heightU={heightU} />
         )}
         {/* label band */}
-        <rect x={INNER_W * 0.5 - 4} y={h / 2 - 7} width={INNER_W * 0.5 - 6} height={14} fill="#020617" opacity={0.78} rx={2} />
+        <rect x={INNER_W * 0.5 - 4} y={h / 2 - 7} width={INNER_W * 0.5 - (view === 'rear' ? 40 : 6)} height={14} fill="#020617" opacity={0.78} rx={2} />
         <text x={INNER_W * 0.5} y={h / 2 + 3.5} fontSize={9.5} fill="#f1f5f9" fontWeight={600}>
           {bad ? '✕ ' : warn ? '⚠ ' : ''}
           {name}
         </text>
-        <text x={INNER_W - 12} y={h / 2 + 3.5} fontSize={9} textAnchor="end" fill={unknown ? '#fbbf24' : d.power.passiveZero ? '#64748b' : '#67e8f9'} fontFamily="var(--font-mono)">
+        <text x={INNER_W - (view === 'rear' ? 44 : 12)} y={h / 2 + 3.5} fontSize={9} textAnchor="end" fill={unknown ? '#fbbf24' : d.power.passiveZero ? '#64748b' : '#67e8f9'} fontFamily="var(--font-mono)">
           {wattLabel(d)}
         </text>
         <rect

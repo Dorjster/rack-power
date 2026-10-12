@@ -113,7 +113,7 @@ export function LibraryPanel({ compact = false }: { compact?: boolean }) {
             )}
           </div>
         </div>
-        <DeviceForm device={draft} mode="add" onPatch={(fn) => setDraft((d) => (d ? produce(d, fn) : d))} />
+        <DeviceForm device={draft} mode="add" onPatch={(fn) => setDraft((d) => (d ? produce(d, (x) => { fn(x); }) : d))} />
         <div className="sticky bottom-0 mt-3 flex justify-end gap-2 border-t border-slate-800 bg-[#0b1220] py-2">
           <button className="btn" onClick={() => setDraft(null)}>
             {t('common.cancel')}
