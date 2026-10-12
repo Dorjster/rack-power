@@ -14,6 +14,12 @@ npm test         # 43 tests: calculations, failover, placement, import/export, i
 npm run build    # static files in dist/
 ```
 
+## Deploy (GitHub Pages)
+
+`.github/workflows/deploy.yml` tests, builds and publishes the app on every push to `main`.
+One-time setup: repository **Settings → Pages → Source: GitHub Actions**.
+The site is then served at `https://<user>.github.io/<repo>/`.
+
 ## How to use (Энгийн горим)
 
 1. **Алхамаар тохируулах:** rack name and size, then PDUs (A/B), then devices, then PSU → outlet, then check.
