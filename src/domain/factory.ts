@@ -190,11 +190,17 @@ export function deviceFromTemplate(rackId: ID, t: DeviceTemplate): DeviceInstanc
     depthMm: t.depthMm.value,
     weightKg: t.weightKg.value,
     airflow: t.airflow.value ?? 'unknown',
-    power: {
-      ...emptyPower(passive),
-      manufacturerW: t.maxAcW.status === 'verified' ? t.maxAcW.value : null,
-      manufacturerSource: t.maxAcW.status === 'verified' ? t.maxAcW.source?.title ?? '' : '',
-    },
+    // Only verified or user-supplied template values are carried over (never a value inferred from the name).
+    power: (() => {
+      const trusted = (s: DeviceTemplate['maxAcW']) => (s.status === 'verified' || s.status === 'user_supplied') && s.value !== null;
+      return {
+        ...emptyPower(passive),
+        designW: trusted(t.maxAcW) ? t.maxAcW.value : null,
+        designSource: trusted(t.maxAcW) ? `${t.maxAcW.source?.title ?? ''} (template, ${t.maxAcW.status})` : '',
+        typicalW: trusted(t.typicalAcW) ? t.typicalAcW.value : null,
+        typicalSource: trusted(t.typicalAcW) ? `${t.typicalAcW.source?.title ?? ''} (template, ${t.typicalAcW.status})` : '',
+      };
+    })(),
     domains: passive ? [] : [newDomain(1, null)],
   });
 }
@@ -285,10 +291,10 @@ export function newProject(partial: Partial<Project> = {}): Project {
 }
 
 /** Deep clone a device with new IDs (device, domains, PSUs). Connections are cleared. */
-export function cloneDevice(d: DeviceInstance): DeviceInstance {
+export function cloneDevice(d: DeviceInstance, nameSuffix = ' (copy)'): DeviceInstance {
   const copy: DeviceInstance = structuredClone(d);
   copy.id = uid('dev');
-  copy.name = `${d.name} (copy)`;
+  copy.name = `${d.name}${nameSuffix}`;
   copy.placement = { kind: 'unplaced' };
   copy.domains = copy.domains.map((dom) => ({
     ...dom,

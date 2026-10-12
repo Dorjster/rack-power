@@ -371,7 +371,7 @@ describe('12. Shared UPS with unknown other loads', () => {
   test('cannot receive a complete Pass', () => {
     const p = baseProject();
     const src = { id: uid('src'), name: 'S', kind: 'utility' as const, note: '' };
-    const ups = { id: uid('ups'), name: 'UPS', ratedKw: 20, ratedKva: 20, redundancy: 'single' as const, sourceId: src.id, otherLoadsKnown: false, otherLoadW: null, efficiency: null, inRack: false, rackDeviceId: null, runtime: null };
+    const ups = { id: uid('ups'), name: 'UPS', ratedKw: 20, ratedKva: 20, redundancy: 'single' as const, sourceId: src.id, otherLoadsKnown: false, otherLoadW: null as number | null, efficiency: null, inRack: false, rackDeviceId: null, runtime: null };
     const br = { id: uid('br'), name: 'B', breakerA: 32, breakerIsUsable: false, phases: 1 as const, voltage: 230, upsId: ups.id, sourceId: null };
     p.sources.push(src);
     p.upses.push(ups);

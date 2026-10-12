@@ -1264,7 +1264,7 @@ export function evaluateRules(ctx: RuleContext): Finding[] {
       const shelfFree = shelf && shelf.placement.kind === 'rack' ? shelf.placement.startU + shelf.placement.heightU : null;
       const fitsAbove =
         confirmed && shelfFree !== null
-          ? occupiedRanges(rack.id, project.devices, project.pdus).every((r) => r.id === shelf!.id || r.end < shelfFree || r.start > shelfFree + pl.confirmedHeightU! - 1) && shelfFree + pl.confirmedHeightU! - 1 <= rack.heightU
+          ? occupiedRanges(rack.id, project.devices, project.pdus).every((r) => r.id === shelf!.id || r.id === d.id || r.end < shelfFree || r.start > shelfFree + pl.confirmedHeightU! - 1) && shelfFree + pl.confirmedHeightU! - 1 <= rack.heightU
           : null;
       const status: CheckStatus = !shelf ? 'fail' : !confirmed || shelfCap === null ? 'unknown' : over || fitsAbove === false ? 'fail' : 'pass';
       c.add({

@@ -22,6 +22,16 @@ export function occupiedRanges(rackId: ID, devices: DeviceInstance[], pdus: Pdu[
     if (d.rackId !== rackId || d.placement.kind !== 'rack') continue;
     out.push({ id: d.id, kind: 'device', start: d.placement.startU, end: d.placement.startU + d.placement.heightU - 1 });
   }
+  // A tower on a shelf reserves the units directly above the shelf once its height is confirmed.
+  // The shelf's own U is counted once (by the shelf), never again for the tower.
+  for (const d of devices) {
+    if (d.rackId !== rackId || d.placement.kind !== 'shelf' || d.placement.confirmedHeightU === null) continue;
+    const shelfId = d.placement.shelfId;
+    const shelf = devices.find((x) => x.id === shelfId);
+    if (!shelf || shelf.placement.kind !== 'rack') continue;
+    const start = shelf.placement.startU + shelf.placement.heightU;
+    out.push({ id: d.id, kind: 'device', start, end: start + d.placement.confirmedHeightU - 1 });
+  }
   for (const p of pdus) {
     if (p.rackId !== rackId || p.mounting !== 'horizontal' || p.startU === null) continue;
     out.push({ id: p.id, kind: 'pdu', start: p.startU, end: p.startU + Math.max(1, p.heightU) - 1 });
